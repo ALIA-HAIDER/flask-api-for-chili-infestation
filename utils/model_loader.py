@@ -1,12 +1,18 @@
 import torch
+import timm
 from torchvision import transforms
 from PIL import Image
 
 def load_model(model_path):
-    model = torch.load(model_path, map_location=torch.device('cpu'))
-    model.eval()
+    # Initialize the Xception model (same architecture used during training)
+    model = timm.create_model('xception', pretrained=False, num_classes=3)
     
-    # Define class names (in correct order)
+    # Load the state dictionary
+    state_dict = torch.load(model_path, map_location=torch.device('cpu'))
+    model.load_state_dict(state_dict)
+    model.eval()
+
+    # Define class names in the correct order
     class_names = ['Aphids', 'Healthy', 'mites+thrips']
     return model, class_names
 
