@@ -1,6 +1,6 @@
-Flask
+flask
+python-dotenv
+cloudinary
 torch
 torchvision
 Pillow
-gunicorn
-timm

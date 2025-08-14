@@ -3,10 +3,33 @@ from werkzeug.utils import secure_filename
 import os
 from utils.model_loader import load_model, transform_image
 from utils.predict import predict_single, predict_batch
+import cloudinary
+import cloudinary.uploader
+from dotenv import load_dotenv
+
+load_dotenv() # Load environment variables from .env file
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Configure Cloudinary
+cloudinary.config(
+  cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME"),
+  api_key = os.environ.get("CLOUDINARY_API_KEY"),
+  api_secret = os.environ.get("CLOUDINARY_API_SECRET")
+)
+
+# --- Debugging: Check if Cloudinary credentials are loaded ---
+print("--- Cloudinary Configuration Check ---")
+print(f"Cloud Name: {os.environ.get('CLOUDINARY_CLOUD_NAME')}")
+print(f"API Key: {os.environ.get('CLOUDINARY_API_KEY')}")
+if os.environ.get('CLOUDINARY_API_SECRET'):
+    print("API Secret: Loaded successfully.")
+else:
+    print("API Secret: NOT FOUND. Please check your .env file.")
+print("------------------------------------")
+# ---------------------------------------------------------
 
 # Load model once on startup
 model, class_names = load_model("model/model.pth")
@@ -24,12 +47,25 @@ def predict():
     if file.filename == '':
         return jsonify({"error": "No selected image"}), 400
 
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
+    # Upload to Cloudinary
+    try:
+        upload_result = cloudinary.uploader.upload(file)
+        print (f"Image uploaded to Cloudinary: {upload_result['secure_url']}")
 
-    prediction = predict_single(filepath, model, class_names)
-    return jsonify({"filename": filename, "prediction": prediction})
+    except Exception as e:
+        return jsonify({"error": f"Cloudinary upload failed: {str(e)}"}), 500
+    
+    # The image is now on Cloudinary, we can use its URL for prediction
+    image_url = upload_result['secure_url']
+    print (f"Image uploaded to Cloudinary: {image_url}")
+
+    # Note: Your predict_single function must be able to handle a URL.
+    # If it only handles local filepaths, you would first save locally,
+    # then upload, then predict from the local path.
+    # This example assumes predict_single can handle URLs.
+    prediction = predict_single(image_url, model, class_names)
+    
+    return jsonify({"filename": file.filename, "prediction": prediction, "url": image_url})
 
 @app.route('/predict_batch', methods=['POST'])
 def predict_batch_api():
@@ -37,18 +73,35 @@ def predict_batch_api():
         return jsonify({"error": "No images part in the request"}), 400
 
     files = request.files.getlist('images')
-    if not files:
+    if not files or all(f.filename == '' for f in files):
         return jsonify({"error": "No images uploaded"}), 400
 
-    filepaths = []
-    for file in files:
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
-        filepaths.append(filepath)
+    results = []
+    image_urls_for_batch = []
+    filenames_for_batch = []
 
-    predictions = predict_batch(filepaths, model, class_names)
-    return jsonify(predictions)
+    for file in files:
+        if file and file.filename:
+            try:
+                upload_result = cloudinary.uploader.upload(file)
+                image_urls_for_batch.append(upload_result['secure_url'])
+                filenames_for_batch.append(secure_filename(file.filename))
+            except Exception as e:
+                # Add error to results and continue with other files
+                results.append({"filename": secure_filename(file.filename), "error": f"Cloudinary upload failed: {str(e)}"})
+
+    # Assuming predict_batch can handle a list of URLs
+    if image_urls_for_batch:
+        predictions = predict_batch(image_urls_for_batch, model, class_names)
+        # Combine results
+        for i, prediction in enumerate(predictions):
+            results.append({
+                "filename": filenames_for_batch[i],
+                "prediction": prediction,
+                "url": image_urls_for_batch[i]
+            })
+
+    return jsonify(results)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Render sets $PORT
