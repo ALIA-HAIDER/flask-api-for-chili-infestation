@@ -1,4 +1,6 @@
-flask
+Flask
+Flask-SQLAlchemy
+psycopg2-binarypsycopg2-binary
 python-dotenv
 cloudinary
 torch

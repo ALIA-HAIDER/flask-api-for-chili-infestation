@@ -1,4 +1,6 @@
+from datetime import datetime
 from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
 import os
 from utils.model_loader import load_model, transform_image
@@ -10,8 +12,18 @@ from dotenv import load_dotenv
 load_dotenv() # Load environment variables from .env file
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("POSTGRES_URL")
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Add debug print for database URL
+print(f"Database URL: {os.environ.get('POSTGRES_URL')}")
+
+
+db = SQLAlchemy(app)
+print("SQLAlchemy initialized successfully")
+
+ 
 
 # Configure Cloudinary
 cloudinary.config(
@@ -19,6 +31,7 @@ cloudinary.config(
   api_key = os.environ.get("CLOUDINARY_API_KEY"),
   api_secret = os.environ.get("CLOUDINARY_API_SECRET")
 )
+
 
 # --- Debugging: Check if Cloudinary credentials are loaded ---
 print("--- Cloudinary Configuration Check ---")
@@ -31,8 +44,81 @@ else:
 print("------------------------------------")
 # ---------------------------------------------------------
 
+
 # Load model once on startup
 model, class_names = load_model("model/model.pth")
+
+# os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# Ensure the UPLOAD_FOLDER exists
+
+
+# UPLOAD_FOLDER = 'uploads'
+# os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+
+
+#schema models 
+
+class Disease(db.Model):
+    __tablename__ ='disease'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    chategory= db.Column(db.String(100), nullable=False)
+    solution = db.Column(db.String(500), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime)
+    updated_at = db.Column(db.DateTime, default=datetime, onupdate=datetime)
+
+
+class User_Plant(db.Model):
+    __tablename__ = 'user_plant'
+    id = db.Column(db.Integer, primary_key=True)
+    plant_image = db.Column(db.String(500), nullable=False)
+    location = db.Column(db.String(200), nullable=False)
+    disease_id= db.Column(db.Integer ,db.ForeignKey('disease.id'), nullable=False)
+    datetime = db.Column(db.DateTime, default=datetime)
+
+
+# create the database tables
+with app.app_context():
+    try:
+        db.create_all()
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"Error creating tables: {e}")
+
+#check if the tables are created
+with app.app_context():
+    try:
+        # Use inspect to check tables instead of deprecated table_names()
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        table_names = inspector.get_table_names()
+        if table_names:
+            print(f"Tables found: {table_names}")
+        else:
+            print("No tables found in database")
+    except Exception as e:
+        print(f"Error checking tables: {e}")
+
+
+
+
+#  Routes
+
+@app.route('/check_db', methods=['GET'])
+def check_db():
+    try:
+        with app.app_context():
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            table_names = inspector.get_table_names()
+            if table_names:
+                return jsonify({"message": f"Tables found: {table_names}"}), 200
+            else:
+                return jsonify({"message": "No tables found in database"}), 404
+    except Exception as e:
+        return jsonify({"error": f"Database connection failed: {str(e)}"}), 500
 
 @app.route('/')
 def home():
