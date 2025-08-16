@@ -8,10 +8,14 @@ from utils.predict import predict_single, predict_batch
 import cloudinary
 import cloudinary.uploader
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 load_dotenv() # Load environment variables from .env file
 
 app = Flask(__name__)
+
+CORS(app, resources={r"/*": {"origins": ["http://localhost:3000", "https://chilli-infestation-detection-web-ap.vercel.app"]}})
+
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("EXTERNAL_DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
