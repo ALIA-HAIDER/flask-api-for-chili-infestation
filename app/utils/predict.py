@@ -1,5 +1,6 @@
 import torch
-from utils.model_loader import transform_image
+import os
+from app.utils.model_loader import transform_image
 
 def predict_single(image_path, model, class_names):
     tensor = transform_image(image_path)
