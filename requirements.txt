@@ -1,6 +1,6 @@
 Flask
 Flask-SQLAlchemy
-psycopg2-binarypsycopg2-binary
+psycopg2-binary 
 python-dotenv
 cloudinary
 torch
