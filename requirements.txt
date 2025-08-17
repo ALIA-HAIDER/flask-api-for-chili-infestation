@@ -6,3 +6,5 @@ cloudinary
 torch
 torchvision
 Pillow
+flask-jwt-extended
+flask-login
