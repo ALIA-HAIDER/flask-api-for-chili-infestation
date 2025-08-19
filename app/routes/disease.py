@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from app import db
 from app.models.disease import Disease
+from app.models.user_plant import User_Plant
 
 disease_bp = Blueprint('disease', __name__)
 
@@ -80,6 +81,7 @@ def delete_disease(disease_id):
         if not disease:
             return jsonify({"error": "Disease not found"}), 404
 
+        User_Plant.query.filter_by(disease_id=disease.id).delete()
         db.session.delete(disease)
         db.session.commit()
         print ("Disease deleted successfully", disease)
