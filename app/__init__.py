@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, jwt_required
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import cloudinary
 import cloudinary.uploader
@@ -29,6 +30,16 @@ def create_app() -> Flask:
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'alian_dev')
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'alian_dev_jwt_secret_dev')
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
+    
+    
+    # ── CORS ─────────────────────────────────────────
+    
+    CORS(app, origins=[
+        "http://localhost:3000", 
+        "https://chilli-infestation-detection-web-ap.vercel.app/", 
+        "https://chilli-infestation-dashboard-bhu-git-main-ars-projects-8d8c8233.vercel.app/"
+    ])
+    # CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000"]}})
     
     
     # ── JWT ──────────────────────────────────────────
@@ -127,7 +138,7 @@ def create_app() -> Flask:
 
 
     @app.route('/delete_all',methods=['DELETE']) # test
-    @jwt_required
+    @jwt_required()
     def delete_all():
         """
         To remove all records from the database.
