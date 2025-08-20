@@ -11,7 +11,7 @@ plants_bp = Blueprint('plants', __name__)
 
 
 @plants_bp.route('/upload_plant',methods=['POST'])
-@jwt_required()
+# @jwt_required()
 def upload_plant():
     if 'image' not in request.files:
         return jsonify({"error": "No image part in the request"}), 400

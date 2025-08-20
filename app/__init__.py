@@ -34,12 +34,12 @@ def create_app() -> Flask:
     
     # ── CORS ─────────────────────────────────────────
     
-    CORS(app, origins=[
-        "http://localhost:3000", 
-        "https://chilli-infestation-detection-web-ap.vercel.app/", 
-        "https://chilli-infestation-dashboard-bhu-git-main-ars-projects-8d8c8233.vercel.app/"
-    ])
-    # CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000"]}})
+    # CORS(app, origins=[
+    #     "http://127.0.0.1:5000", 
+    #     "https://www.chilli-infestation-detection-web-ap.vercel.app/", 
+    #     "https://www.chilli-infestation-dashboard-bhu-git-main-ars-projects-8d8c8233.vercel.app/"
+    # ])
+    CORS(app, resources={r"/*": {"origins": "https://chilli-infestation-detection-web-ap.vercel.app"}})
     
     
     # ── JWT ──────────────────────────────────────────
